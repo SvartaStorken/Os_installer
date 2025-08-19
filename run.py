@@ -1,88 +1,79 @@
 import subprocess
-import sys
-
-import subprocess
+# 'sys' behövs inte om du inte använder det, så vi kan ta bort den importen.
 
 def run_disk_tools():
     """Kör disk_tools.py och hanterar eventuella fel."""
     print("Starting disk utility...")
     try:
-        # Kör skriptet och kollar efter fel (check=True)
         subprocess.run(["python3", "disk_tools.py"], check=True)
         print("Disk utility finished successfully.")
     except FileNotFoundError:
-        # Detta fel uppstår om "disk_tools.py" inte finns
         print("ERROR: Could not find the script 'disk_tools.py'.")
     except subprocess.CalledProcessError as e:
-        # Detta fel uppstår om skriptet körs men misslyckas (returnerar en felkod)
         print(f"ERROR: The disk utility script failed with return code {e.returncode}.")
 
-correct_answer = False
+def get_confirmed_choice(title, options):
+    """
+    Visar en meny, ber användaren göra ett val och bekräfta det.
+    Returnerar det bekräftade valet.
+    """
+    while True: # En evighetsloop som vi bryter oss ur med 'return'
+        print(title)
+        for key, value in options.items():
+            # Justerar texten så att [key] hamnar på samma plats
+            print(f"{value:<29}[{key}]")
+        print("***********************")
+        print("Please type your choice:")
+        
+        choice = input()
+        
+        # Se till att valet är giltigt innan vi fortsätter
+        if choice not in options:
+            print(f'"{choice}" is not a valid option. Please try again.\n')
+            continue
+
+        print("***********************")
+        print(f'You chose "{options[choice]}". Is that correct? (yes/no)')
+        
+        user_input = input()
+
+        if user_input.lower().startswith('y'):
+            return choice # Bryter loopen och returnerar det bekräftade valet
+        else:
+            print("OK, let's try again.\n")
+
+# ----- HUVUDPROGRAMMET BÖRJAR HÄR -----
 
 print("Welcome to os_installer")
 print("***********************")
-print("What do you like to do?")
-print("***********************")
 
-# while not loop to ensure correct answer
-while not correct_answer:
-    print("New install                  [1]")
-    print("Edit installation Template   [2]")
-    print("***********************")
-    print("Please type your choice:")
-    
-    chose = input()
-
-    print("***********************")
-    print(f'You chose "{chose}". Is that correct? (yes/no)')
-    
-    user_input = input()
-
-    # anny answer starts with y is correct
-    if user_input.lower().startswith('y'):
-        correct_answer = True
-    else:
-        print(f'Your choice "{chose}" was not confirmed. Let\'s try again.')
-        print("***********************\n")
+# Definiera alternativen för den första menyn
+main_menu_options = {
+    "1": "New install",
+    "2": "Edit installation Template"
+}
+main_choice = get_confirmed_choice("What do you like to do?", main_menu_options)
 
 print("***********************")
 
-if chose == "1":
-    correct_answer = False
-    while not correct_answer:
-
-        print("New install")
-        print("Install on local machine?    [1]")
-        print("Install on remote machine?   [2]")
-        print("***********************")
-        print("Please type your choice:")
+if main_choice == "1":
+    # Definiera alternativen för den andra menyn
+    machine_menu_options = {
+        "1": "Install on local machine",
+        "2": "Install on remote machine"
+    }
+    machine_choice = get_confirmed_choice("New install", machine_menu_options)
     
-        chose_machine = input()
-
-        print("***********************")
-        print(f'You chose "{chose_machine}". Is that correct? (yes/no)')
-    
-        user_input = input()
-
-        # anny answer starts with y is correct
-        if user_input.lower().startswith('y'):
-            correct_answer = True
-        else:
-            print(f'Your choice "{chose_machine}" was not confirmed. Let\'s try again.')
-            print("***********************\n")
-    if chose_machine == "1":
-        print("Install on local machine")
+    if machine_choice == "1":
+        print("Preparing to install on local machine...")
         run_disk_tools()
-    elif chose_machine == "2":
-        print("Install on remote machine")
+    elif machine_choice == "2":
         print("Feature yet to be implemented")
-    else: 
-        print(f'You chose "{chose_machine}". Feature yet to be implemented')
-
-elif chose == "2":
+        
+elif main_choice == "2":
     print("Edit installation Template")
     print("***********************")
     print("Feature yet to be implemented")
 
 else: 
-    print(f'You chose "{chose}". Feature yet to be implemented')
+    print(f'You chose "{main_choice}". Feature yet to be implemented')

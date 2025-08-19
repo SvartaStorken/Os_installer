@@ -74,12 +74,36 @@ def main():
     disk_data = get_disk_info()
     
     if disk_data:
-        display_disk_info(disk_data)
+        print("Disk-information hämtad framgångsrikt.")
+        print("***********************")
+        
+        main_menu_options = {
+            "1": "Full output of lsblk?",
+            "2": "Show devices only"
+        }
+        
+        # --- HÄR ÄR ÄNDRINGARNA ---
+        
+        # 1. VISA MENYN för användaren
+        print("Please choose an option:")
+        for key, value in main_menu_options.items():
+            print(f"[{key}] {value}")
+        
+        # 2. HÄMTA INPUT från användaren och spara i en ny variabel
+        choice = input("Your choice: ")
+        
+        # 3. JÄMFÖR ANVÄNDARENS SVAR (variabeln 'choice')
+        if choice == "1":
+            display_disk_info(disk_data)
+        elif choice == "2":
+            print("Feature yet to be implemented")
+        else:
+            print(f'"{choice}" is not a valid option.')
+
     else:
         # Om vi inte fick någon data, signalera ett fel.
         print("Kunde inte hämta disk-information. Avbryter.", file=sys.stderr)
         sys.exit(1) # Avsluta med en felkod != 0 för att signalera misslyckande
 
 if __name__ == "__main__":
-    # Denna kod körs bara när du startar skriptet direkt (t.ex. med ./disk_tools.py)
     main()
