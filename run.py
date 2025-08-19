@@ -1,3 +1,22 @@
+import subprocess
+import sys
+
+import subprocess
+
+def run_disk_tools():
+    """Kör disk_tools.py och hanterar eventuella fel."""
+    print("Starting disk utility...")
+    try:
+        # Kör skriptet och kollar efter fel (check=True)
+        subprocess.run(["python3", "disk_tools.py"], check=True)
+        print("Disk utility finished successfully.")
+    except FileNotFoundError:
+        # Detta fel uppstår om "disk_tools.py" inte finns
+        print("ERROR: Could not find the script 'disk_tools.py'.")
+    except subprocess.CalledProcessError as e:
+        # Detta fel uppstår om skriptet körs men misslyckas (returnerar en felkod)
+        print(f"ERROR: The disk utility script failed with return code {e.returncode}.")
+
 correct_answer = False
 
 print("Welcome to os_installer")
@@ -53,7 +72,7 @@ if chose == "1":
             print("***********************\n")
     if chose_machine == "1":
         print("Install on local machine")
-        print("Feature yet to be implemented")
+        run_disk_tools()
     elif chose_machine == "2":
         print("Install on remote machine")
         print("Feature yet to be implemented")
@@ -67,4 +86,3 @@ elif chose == "2":
 
 else: 
     print(f'You chose "{chose}". Feature yet to be implemented')
-#########
