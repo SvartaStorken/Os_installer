@@ -113,11 +113,39 @@ def Disk_info():
         else:
             print(f'"{choice}" is not a valid option.')
 
-    else:
-        # Om vi inte fick någon data, signalera ett fel.
-        print("Kunde inte hämta disk-information. Avbryter.", file=sys.stderr)
-        sys.exit(1) # Avsluta med en felkod != 0 för att signalera misslyckande
+        
+    print("\nDo you want to select a device for inspection? (yes/no)")
+    user_input = input()
 
+    if user_input.lower().startswith('y'):
+        # Skapa en lista över tillgängliga diskar
+        available_disks = [
+            dev for dev in disk_data['blockdevices'] if dev.get('type') == 'disk'
+        ]
+        
+        if not available_disks:
+            print("No disks found to inspect.")
+            return
+
+        # Bygg en meny dynamiskt från listan
+        disk_menu_options = {
+            str(i + 1): f"/dev/{disk['name']}" for i, disk in enumerate(available_disks)
+        }
+
+        # Använd din befintliga meny-funktion för att låta användaren välja
+        # Notera: Vi behöver inte bekräfta detta val, så vi skriver en enklare loop.
+        print("\nPlease select a device:")
+        for key, value in disk_menu_options.items():
+            print(f"[{key}] {value}")
+        
+        device_choice = input("Your choice: ")
+
+        if device_choice in disk_menu_options:
+            selected_device_path = disk_menu_options[device_choice]
+            print(f"Device selected: {selected_device_path}")
+            inspect_device(selected_device_path)
+        else:
+            print(f'"{device_choice}" is not a valid option.')
 def get_confirmed_choice(title, options):
     """
     Visar en meny, ber användaren göra ett val och bekräfta det.
@@ -147,6 +175,28 @@ def get_confirmed_choice(title, options):
             return choice # Bryter loopen och returnerar det bekräftade valet
         else:
             print("OK, let's try again.\n")
+
+def inspect_device(device_path):
+    """
+    Kör 'sudo fdisk -l' på en specifik enhet för att få detaljerad
+    information om partitionstabellen.
+    """
+    print(f"\n--- Detaljerad information för {device_path} ---")
+    # VARNING: fdisk kräver ofta sudo för att läsa all information korrekt.
+    command = ["sudo", "parted", device_path, "print", "free"]
+    try:
+        # Vi använder subprocess.run utan att fånga output,
+        # så att fdisk kan skriva direkt till terminalen.
+        # Detta hanterar även eventuella lösenordsprompter från sudo.
+        subprocess.run(command, check=True)
+        print("-------------------------------------------")
+        return True
+    except FileNotFoundError:
+        print("Fel: Kommandot 'fdisk' eller 'sudo' hittades inte.", file=sys.stderr)
+        return False
+    except subprocess.CalledProcessError:
+        print(f"Fel: Kommandot misslyckades. Kontrollera dina rättigheter.", file=sys.stderr)
+        return False
 
 main_menu_options = {
     "1": "Disk Analys",
