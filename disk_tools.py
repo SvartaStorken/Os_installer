@@ -179,39 +179,50 @@ def get_confirmed_choice(title, options):
 def inspect_device(device_path):
     """
     Kör 'sudo fdisk -l' på en specifik enhet för att få detaljerad
-    information om partitionstabellen.
+    information om partitionstabellen med 'parted'.
     """
     print(f"\n--- Detaljerad information för {device_path} ---")
-    # VARNING: fdisk kräver ofta sudo för att läsa all information korrekt.
+    # VARNING: parted kräver ofta sudo för att läsa all information korrekt.
     command = ["sudo", "parted", device_path, "print", "free"]
     try:
         # Vi använder subprocess.run utan att fånga output,
-        # så att fdisk kan skriva direkt till terminalen.
+        # så att parted kan skriva direkt till terminalen.
         # Detta hanterar även eventuella lösenordsprompter från sudo.
         subprocess.run(command, check=True)
         print("-------------------------------------------")
         return True
     except FileNotFoundError:
-        print("Fel: Kommandot 'fdisk' eller 'sudo' hittades inte.", file=sys.stderr)
+        print("Fel: Kommandot 'parted' eller 'sudo' hittades inte.", file=sys.stderr)
         return False
     except subprocess.CalledProcessError:
         print(f"Fel: Kommandot misslyckades. Kontrollera dina rättigheter.", file=sys.stderr)
         return False
 
-main_menu_options = {
-    "1": "Disk Analys",
-    "2": "Partitioning",
-    "3": "Disk Encryption",
-    "4": "Logick Volumes",
-    "5": "Wright File system"
-}
+def main():
+    """Huvudfunktion som visar menyn i en loop tills användaren väljer att avsluta."""
+    main_menu_options = {
+        "1": "Disk Analys",
+        "2": "Partitioning",
+        "3": "Disk Encryption",
+        "4": "Logick Volumes",
+        "5": "Wright File system",
+        "6": "Exit"
+    }
 
-main_choice = get_confirmed_choice("What do you like to do?", main_menu_options)
+    while True:
+        main_choice = get_confirmed_choice("What do you like to do?", main_menu_options)
+        print("***********************")
 
-print("***********************")
+        if main_choice == "1":
+            Disk_info()
+        elif main_choice in ["2", "3", "4", "5"]:
+            print("Feature yet to be implemented")
+        elif main_choice == "6":
+            print("Exiting disk tools. Goodbye!")
+            break  # Avslutar while-loopen
 
-if main_choice == "1":
- Disk_info()
+        # Pausa och vänta på användaren innan menyn visas igen
+        input("\nPress Enter to return to the main menu...")
 
-elif main_choice == "2":
-    print("Feature yet to be implemented")
+if __name__ == "__main__":
+    main()
