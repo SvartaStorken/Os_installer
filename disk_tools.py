@@ -95,6 +95,44 @@ def select_disk_device(prompt="Please select a device:"):
         else:
             print(f'"{choice}" is not a valid option. Please try again.')
 
+def select_partition_device(prompt="Please select a partition:"):
+    """
+    Visar en meny med partitioner och låter användaren välja en.
+    Returnerar den valda partitionens sökväg (t.ex. /dev/sda1).
+    """
+    disk_data = get_disk_info()
+    if not disk_data:
+        return None
+
+    available_partitions = []
+    for device in disk_data['blockdevices']:
+        if device.get('type') == 'disk' and 'children' in device:
+            for partition in device['children']:
+                available_partitions.append(partition)
+
+    if not available_partitions:
+        print("No partitions found.")
+        return None
+
+    partition_menu_options = {
+        str(i + 1): f"/dev/{part['name']} ({part['size']})" for i, part in enumerate(available_partitions)
+    }
+    cancel_option = str(len(partition_menu_options) + 1)
+    partition_menu_options[cancel_option] = "Cancel"
+
+    while True:
+        print(f"\n{prompt}")
+        for key, value in partition_menu_options.items():
+            print(f"[{key}] {value}")
+        
+        choice = input("Your choice: ")
+        if choice == cancel_option:
+            return None
+        elif choice in partition_menu_options:
+            return partition_menu_options[choice].split()[0]
+        else:
+            print(f'"{choice}" is not a valid option. Please try again.')
+
 def inspect_device(device_path):
     """
     Kör 'sudo parted ... print free' för att visa detaljerad partitionsinformation.
@@ -280,6 +318,248 @@ def partition_disk():
         else:
             print(f'"{action_choice}" is not a valid option.')
 
+def disk_encryption_menu():
+    """Hanterar menyn och arbetsflödet för LUKS-diskkryptering."""
+    encryption_menu = {
+        "1": "Format a partition with LUKS (ERASES DATA)",
+        "2": "Open a LUKS-encrypted partition",
+        "3": "Add a new key to a LUKS partition",
+        "4": "Return to main menu"
+    }
+
+    while True:
+        print("\n--- Disk Encryption Menu ---")
+        for key, value in encryption_menu.items():
+            print(f"[{key}] {value}")
+        
+        choice = input("Your choice: ")
+
+        if choice == "1":
+            # Format with LUKS
+            device = select_partition_device("Select a partition to format with LUKS:")
+            if not device:
+                print("Operation cancelled.")
+                continue
+
+            print("\n" + "="*60 + "\n!!! EXTREME WARNING !!!")
+            print(f"This will IRREVERSIBLY ERASE ALL DATA on {device}.")
+            print("You will be asked to create a new passphrase.")
+            print("="*60)
+            confirm = input(f"To confirm, please type the device name ('{device}'): ")
+
+            if confirm == device:
+                command = ["sudo", "cryptsetup", "luksFormat", device]
+                command_str = ' '.join(command)
+                script_path = os.path.join(TEMPLATE_DIR, "4_encrypt_device.sh")
+
+                try:
+                    # 1. Skapa katalogen om den inte finns
+                    os.makedirs(TEMPLATE_DIR, exist_ok=True)
+
+                    # 2. Skriv till templat-filen (använder 'w' för att skriva över)
+                    with open(script_path, "w") as f:
+                        f.write("#!/bin/bash\n\n")
+                        f.write("# Detta skript kräver interaktion för att mata in lösenfras.\n")
+                        f.write(f"# Kommando för att formatera {device} med LUKS-kryptering.\n")
+                        f.write(f"{command_str}\n")
+                    print(f"Kommando sparat till '{script_path}'.")
+
+                    # 3. Gör skriptet körbart
+                    os.chmod(script_path, 0o755)
+                    print(f"Gjorde skriptet '{script_path}' körbart.")
+
+                    # 4. Kör kommandot
+                    print(f"\nKör kommando: {command_str}")
+                    print("Please follow the prompts to set your passphrase.")
+                    subprocess.run(command, check=True)
+                    print(f"\nSuccessfully formatted {device} with LUKS.")
+
+                    # Fråga om att öppna den nya volymen
+                    open_now = input("\nDo you want to open (unlock) the new encrypted volume now? (yes/no): ")
+                    if open_now.lower().startswith('y'):
+                        mapper_name = input("Enter a name for the mapped device (e.g., 'crypted_root'): ")
+                        if not mapper_name.strip():
+                            print("Mapper name cannot be empty. Skipping open operation.")
+                        else:
+                            open_command = ["sudo", "cryptsetup", "open", device, mapper_name]
+                            open_command_str = ' '.join(open_command)
+
+                            print(f"\nRunning command: {open_command_str}")
+                            print("Please enter your passphrase to unlock.")
+                            subprocess.run(open_command, check=True)
+                            print(f"\nSuccessfully opened {device} as /dev/mapper/{mapper_name}")
+
+                            # Lägg till open-kommandot i skriptet
+                            with open(script_path, "a") as f:
+                                f.write("\n# Kommando för att öppna den krypterade partitionen.\n")
+                                f.write(f"{open_command_str}\n")
+                            print(f"Open command appended to '{script_path}'.")
+                except (IOError, subprocess.CalledProcessError) as e:
+                    print(f"An error occurred during encryption or opening the device: {e}", file=sys.stderr)
+            else:
+                print("Confirmation failed. Action cancelled.")
+
+        elif choice == "2":
+            # Open LUKS device
+            device = select_partition_device("Select a LUKS-encrypted partition to open:")
+            if not device:
+                print("Operation cancelled.")
+                continue
+            
+            mapper_name = input("Enter a name for the mapped device (e.g., 'crypted_data'): ")
+            if not mapper_name.strip():
+                print("Mapper name cannot be empty. Operation cancelled.")
+                continue
+
+            command = ["sudo", "cryptsetup", "open", device, mapper_name]
+            try:
+                print(f"\nRunning command: {' '.join(command)}")
+                print("Please enter your passphrase when prompted.")
+                subprocess.run(command, check=True)
+                print(f"\nSuccessfully opened {device} as /dev/mapper/{mapper_name}")
+            except (FileNotFoundError, subprocess.CalledProcessError) as e:
+                print(f"Error opening device: {e}", file=sys.stderr)
+
+        elif choice == "3":
+            print("Feature yet to be implemented")
+
+        elif choice == "4":
+            break
+        else:
+            print(f'"{choice}" is not a valid option.')
+
+def select_multiple_partitions(prompt="Select partitions to use."):
+    """
+    Låter användaren välja en eller flera partitioner från en lista.
+    Returnerar en lista med valda partitionssökvägar.
+    """
+    selected_partitions = []
+    print(f"\n{prompt}")
+    
+    while True:
+        # Använd den befintliga funktionen för att visa menyn och få ett val
+        # Vi anpassar prompten för att visa vad som redan är valt
+        current_selection_str = f" (Selected: {', '.join(selected_partitions)})" if selected_partitions else ""
+        device = select_partition_device(f"Select a partition to add{current_selection_str}.\nChoose 'Cancel' when you are done.")
+        
+        if not device:  # Användaren valde 'Cancel', vilket betyder att de är klara
+            break
+            
+        if device in selected_partitions:
+            print(f"{device} is already selected. Please choose another.")
+        else:
+            selected_partitions.append(device)
+            print(f"Added {device}.")
+            
+    return selected_partitions
+
+def create_lvm_setup():
+    """Guidar användaren genom att skapa PV, VG och LVs och sparar kommandona."""
+    all_commands = []
+    script_path = os.path.join(TEMPLATE_DIR, "5_logical_volumes.sh")
+
+    # --- Steg 1: pvcreate ---
+    print("\n--- Step 1: Create Physical Volumes (PVs) ---")
+    physical_volumes = select_multiple_partitions("Select partitions to initialize for LVM.")
+    if not physical_volumes:
+        print("No partitions selected. LVM setup cancelled.")
+        return
+
+    pv_command_str = f"sudo pvcreate {' '.join(physical_volumes)}"
+    print(f"\nThe following command will be executed:\n  {pv_command_str}")
+    if not input("Proceed? (yes/no): ").lower().startswith('y'):
+        print("Operation cancelled.")
+        return
+
+    try:
+        subprocess.run(pv_command_str.split(), check=True, capture_output=True, text=True)
+        print("Physical Volumes created successfully.")
+        all_commands.append(f"# Step 1: Create Physical Volumes\n{pv_command_str}\n")
+    except subprocess.CalledProcessError as e:
+        print(f"Error creating Physical Volumes: {e.stderr}", file=sys.stderr)
+        return
+
+    # --- Steg 2: vgcreate ---
+    print("\n--- Step 2: Create a Volume Group (VG) ---")
+    vg_name = input("Enter a name for the new Volume Group (e.g., 'vg_main'): ")
+    if not vg_name.strip():
+        print("Volume Group name cannot be empty. Operation cancelled.")
+        return
+
+    vg_command_str = f"sudo vgcreate {vg_name} {' '.join(physical_volumes)}"
+    print(f"\nThe following command will be executed:\n  {vg_command_str}")
+    if not input("Proceed? (yes/no): ").lower().startswith('y'):
+        print("Operation cancelled.")
+        return
+
+    try:
+        subprocess.run(vg_command_str.split(), check=True, capture_output=True, text=True)
+        print(f"Volume Group '{vg_name}' created successfully.")
+        all_commands.append(f"# Step 2: Create Volume Group\n{vg_command_str}\n")
+    except subprocess.CalledProcessError as e:
+        print(f"Error creating Volume Group: {e.stderr}", file=sys.stderr)
+        return
+
+    # --- Steg 3: lvcreate (loop) ---
+    print("\n--- Step 3: Create Logical Volumes (LVs) ---")
+    while True:
+        if not input("Create a new Logical Volume? (yes/no): ").lower().startswith('y'):
+            break
+
+        lv_name = input("  Name for the new LV (e.g., 'lv_root'): ")
+        lv_size = input("  Size for the LV (e.g., '20G', '100%FREE'): ")
+        if not lv_name.strip() or not lv_size.strip():
+            print("LV name and size cannot be empty. Skipping.")
+            continue
+
+        size_flag = "-L" if '%' not in lv_size else "-l"
+        lv_command_str = f"sudo lvcreate {size_flag} {lv_size} -n {lv_name} {vg_name}"
+        
+        print(f"  Command: {lv_command_str}")
+        if not input("  Proceed with this LV? (yes/no): ").lower().startswith('y'):
+            print("  LV creation skipped.")
+            continue
+
+        try:
+            subprocess.run(lv_command_str.split(), check=True, capture_output=True, text=True)
+            print(f"  Logical Volume '{lv_name}' created successfully.")
+            all_commands.append(f"# Step 3: Create Logical Volume '{lv_name}'\n{lv_command_str}\n")
+        except subprocess.CalledProcessError as e:
+            print(f"  Error creating Logical Volume: {e.stderr}", file=sys.stderr)
+
+    # --- Spara till skript ---
+    if all_commands:
+        print(f"\nSaving LVM commands to '{script_path}'...")
+        try:
+            os.makedirs(TEMPLATE_DIR, exist_ok=True)
+            with open(script_path, "w") as f:
+                f.write("#!/bin/bash\n\n")
+                f.write("# This script sets up LVM based on the steps performed.\n\n")
+                f.writelines(all_commands)
+            os.chmod(script_path, 0o755)
+            print(f"Successfully saved and made '{script_path}' executable.")
+        except IOError as e:
+            print(f"Error writing to script file: {e}", file=sys.stderr)
+
+def lvm_menu():
+    """Hanterar menyn för LVM-operationer."""
+    lvm_options = {
+        "1": "Create volumes and group",
+        "2": "Return to main menu"
+    }
+    while True:
+        print("\n--- Logical Volume (LVM) Menu ---")
+        for key, value in lvm_options.items():
+            print(f"[{key}] {value}")
+        choice = input("Your choice: ")
+
+        if choice == "1":
+            create_lvm_setup()
+        elif choice == "2":
+            break
+        else:
+            print(f'"{choice}" is not a valid option.')
+
 def get_confirmed_choice(title, options):
     """Visar en meny och returnerar ett bekräftat val."""
     while True:
@@ -320,7 +600,11 @@ def main():
             Disk_info()
         elif main_choice == "2":
             partition_disk()
-        elif main_choice in ["3", "4", "5"]:
+        elif main_choice == "3":
+            disk_encryption_menu()
+        elif main_choice == "4":
+            lvm_menu()
+        elif main_choice == "5":
             print("Feature yet to be implemented")
         elif main_choice == "6":
             print("Exiting disk tools. Goodbye!")
