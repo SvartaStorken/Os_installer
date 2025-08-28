@@ -7,7 +7,7 @@ from utils.disk_ops import select_partition_device
 TEMPLATE_DIR = "Templates/default_template"
 
 def run_encryption_menu() -> None:
-    """Hanterar menyn och arbetsflödet för LUKS-diskkryptering."""
+    """Handles the menu and workflow for LUKS disk encryption."""
     encryption_menu = {
         "1": "Format a partition with LUKS (ERASES DATA)",
         "2": "Open a LUKS-encrypted partition",
@@ -41,10 +41,10 @@ def run_encryption_menu() -> None:
                 script_path = os.path.join(TEMPLATE_DIR, "4_encrypt_device.sh")
 
                 try:
-                    # 1. Skapa katalogen om den inte finns
+                    # 1. Create the directory if it does not exist
                     os.makedirs(TEMPLATE_DIR, exist_ok=True)
 
-                    # 2. Skriv till templat-filen (använder 'w' för att skriva över)
+                    # 2. Write to the template file (using 'w' to overwrite)
                     with open(script_path, "w") as f:
                         f.write("#!/bin/bash\n\n")
                         f.write("# Detta skript kräver interaktion för att mata in lösenfras.\n")
@@ -52,17 +52,17 @@ def run_encryption_menu() -> None:
                         f.write(f"{command_str}\n")
                     print(f"Kommando sparat till '{script_path}'.")
 
-                    # 3. Gör skriptet körbart
+                    # 3. Make the script executable
                     os.chmod(script_path, 0o755)
                     print(f"Gjorde skriptet '{script_path}' körbart.")
 
-                    # 4. Kör kommandot
+                    # 4. Run the command
                     print(f"\nKör kommando: {command_str}")
                     print("Please follow the prompts to set your passphrase.")
                     subprocess.run(command, check=True)
                     print(f"\nSuccessfully formatted {device} with LUKS.")
 
-                    # Fråga om att öppna den nya volymen
+                    # Ask if the new volume should be opened
                     open_now = input("\nDo you want to open (unlock) the new encrypted volume now? (yes/no): ")
                     if open_now.lower().startswith('y'):
                         mapper_name = input("Enter a name for the mapped device (e.g., 'crypted_root'): ")
@@ -77,7 +77,7 @@ def run_encryption_menu() -> None:
                             subprocess.run(open_command, check=True)
                             print(f"\nSuccessfully opened {device} as /dev/mapper/{mapper_name}")
 
-                            # Lägg till open-kommandot i skriptet
+                            # Add the open command to the script
                             with open(script_path, "a") as f:
                                 f.write("\n# Kommando för att öppna den krypterade partitionen.\n")
                                 f.write(f"{open_command_str}\n")

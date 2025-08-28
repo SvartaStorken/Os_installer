@@ -36,22 +36,22 @@ def create_partition_fullscreen(device_path: str) -> None:
 
     if confirm.lower().startswith('y'):
         try:
-            # 1. Skapa katalogen om den inte finns
+            # 1. Create the directory if it does not exist
             os.makedirs(TEMPLATE_DIR, exist_ok=True)
             print(f"Directory '{TEMPLATE_DIR}' ensured.")
 
-            # 2. Skriv till templat-filen
+            # 2. Write to the template file
             with open(script_path, "a") as f:
                 f.write(f"#!/bin/bash\n\n")
                 f.write(f"# Command to create a new partition on {device_path}\n")
                 f.write(f"{command_str}\n\n")
             print(f"Command appended to '{script_path}'.")
 
-            # 3. Gör skriptet körbart
-            os.chmod(script_path, 0o755) # 0o755 motsvarar rwxr-xr-x
+            # 3. Make the script executable
+            os.chmod(script_path, 0o755) # 0o755 means rwxr-xr-x
             print(f"Made script '{script_path}' executable.")
 
-            # 4. Kör kommandot för att verifiera
+            # 4. Run the command to verify
             print("Executing command to verify...")
             subprocess.run(command_str.split(), check=True)
             print("\nPartition created successfully!")
@@ -65,7 +65,7 @@ def create_partition_fullscreen(device_path: str) -> None:
 
 
 def run_partitioning() -> None:
-    """Hanterar arbetsflödet för att partitionera en disk."""
+    """Manages the workflow for partitioning a disk."""
     device_path = select_disk_device("Select a disk to partition:")
     if not device_path:
         print("Partitioning cancelled.")

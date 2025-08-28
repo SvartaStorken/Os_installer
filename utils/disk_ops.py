@@ -4,9 +4,9 @@ import sys
 
 def get_disk_info() -> dict | None:
     """
-    Kör kommandot 'lsblk' för att hämta information om alla block-enheter.
-    Använder --json-flaggan för att få strukturerad och pålitlig output.
-    Returnerar informationen som ett Python-objekt (dictionary).
+    Runs the 'lsblk' command to retrieve information about all block devices.
+    Uses the --json flag to get structured and reliable output.
+    Returns the information as a Python object (dictionary).
     """
     try:
         command = ["lsblk", "-o", "NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT", "--json"]
@@ -24,8 +24,8 @@ def get_disk_info() -> dict | None:
 
 def select_disk_device(prompt: str="Please select a device:") -> str | None:
     """
-    Visar en meny med diskar och låter användaren välja en.
-    Returnerar den valda enhetens sökväg (t.ex. /dev/sda).
+    Displays a menu with disks and lets the user select one.
+    Returns the selected device path (e.g. /dev/sda).
     """
     disk_data = get_disk_info()
     if not disk_data:
@@ -57,8 +57,8 @@ def select_disk_device(prompt: str="Please select a device:") -> str | None:
 
 def select_partition_device(prompt: str="Please select a partition:") -> str | None:
     """
-    Visar en meny med partitioner och låter användaren välja en.
-    Returnerar den valda partitionens sökväg (t.ex. /dev/sda1).
+    Displays a menu with partitions and lets the user select one.
+    Returns the selected partition path (e.g. /dev/sda1).
     """
     disk_data = get_disk_info()
     if not disk_data:
@@ -95,7 +95,7 @@ def select_partition_device(prompt: str="Please select a partition:") -> str | N
 
 def inspect_device(device_path: str) -> bool:
     """
-    Kör 'sudo parted ... print free' för att visa detaljerad partitionsinformation.
+    Runs 'sudo parted ... print free' to show detailed partition information.
     """
     print(f"\n--- Detailed information for {device_path} ---")
     command = ["sudo", "parted", device_path, "print", "free"]
@@ -109,19 +109,19 @@ def inspect_device(device_path: str) -> bool:
 
 def get_free_space_info(device_path: str) -> str | None:
     """
-    Använder parted i maskinläsbart läge för att hitta startsektorn för ledigt utrymme.
-    Returnerar startsektorn som en sträng (t.ex. '12345s') eller None vid fel.
+    Uses parted in machine-readable mode to find the start sector of free space.
+    Returns the start sector as a string (e.g. '12345s') or None on error.
     """
     command = ["sudo", "parted", "--script", device_path, "--machine", "unit", "s", "print", "free"]
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         lines = result.stdout.strip().split('\n')
-        # Den sista raden som beskriver en "partition" är det fria utrymmet
+        # The last line describing a "partition" is the free space
         free_space_line = lines[-1]
 
         if free_space_line:
             parts = free_space_line.split(':')
-            # parts[1] är startsektorn, redan med enhet 's'
+            # parts[1] is the start sector, already with unit 's'
             return parts[1]
         return None
     except (subprocess.CalledProcessError, IndexError) as e:

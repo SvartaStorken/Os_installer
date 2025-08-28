@@ -2,12 +2,12 @@ from utils.ui import display_disk_info, display_disk_devs
 from utils.disk_ops import get_disk_info, select_disk_device, inspect_device
 
 def run_disk_analysis() -> None:
-    """Hanterar menyn för att visa diskinformation."""
+    """Handles the menu for displaying disk information."""
     disk_data = get_disk_info()
     if not disk_data:
         return
 
-    print("Disk-information hämtad framgångsrikt.")
+    print("Disk information retrieved successfully.")
     print("***********************")
 
     menu_options = {"1": "Full output of lsblk?", "2": "Show devices only"}

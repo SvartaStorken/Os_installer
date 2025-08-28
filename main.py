@@ -1,7 +1,7 @@
 from utils import ui
 from modules import disk_analysis, partitioning, encryption, lvm
 
-# Definiera sökvägen till vår mallkatalog för enkel åtkomst
+# Define the path to our template directory for easy access
 TEMPLATE_DIR = "Templates/default_template"
 
 def main():

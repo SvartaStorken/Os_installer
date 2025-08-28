@@ -8,19 +8,19 @@ TEMPLATE_DIR = "Templates/default_template"
 
 def select_multiple_partitions(prompt: str="Select partitions to use.") -> list:
     """
-    Låter användaren välja en eller flera partitioner från en lista.
-    Returnerar en lista med valda partitionssökvägar.
+    Allows the user to select one or more partitions from a list.
+    Returns a list of selected partition paths.
     """
     selected_partitions = []
     print(f"\n{prompt}")
 
     while True:
-        # Använd den befintliga funktionen för att visa menyn och få ett val
-        # Vi anpassar prompten för att visa vad som redan är valt
+        # Use the existing function to display the menu and get a selection
+        # We adapt the prompt to show what is already selected
         current_selection_str = f" (Selected: {', '.join(selected_partitions)})" if selected_partitions else ""
         device = select_partition_device(f"Select a partition to add{current_selection_str}.\nChoose 'Cancel' when you are done.")
 
-        if not device:  # Användaren valde 'Cancel', vilket betyder att de är klara
+        if not device:  # The user chose 'Cancel', which means they are done
             break
 
         if device in selected_partitions:
@@ -32,11 +32,11 @@ def select_multiple_partitions(prompt: str="Select partitions to use.") -> list:
     return selected_partitions
 
 def create_lvm_setup() -> None:
-    """Guidar användaren genom att skapa PV, VG och LVs och sparar kommandona."""
+    """Guides the user through creating PV, VG, and LVs and saves the commands."""
     all_commands = []
     script_path = os.path.join(TEMPLATE_DIR, "5_logical_volumes.sh")
 
-    # --- Steg 1: pvcreate ---
+    # --- Step 1: pvcreate ---
     print("\n--- Step 1: Create Physical Volumes (PVs) ---")
     physical_volumes = select_multiple_partitions("Select partitions to initialize for LVM.")
     if not physical_volumes:
@@ -57,7 +57,7 @@ def create_lvm_setup() -> None:
         print(f"Error creating Physical Volumes: {e.stderr}", file=sys.stderr)
         return
 
-    # --- Steg 2: vgcreate ---
+    # --- Step 2: vgcreate ---
     print("\n--- Step 2: Create a Volume Group (VG) ---")
     vg_name = input("Enter a name for the new Volume Group (e.g., 'vg_main'): ")
     if not vg_name.strip():
@@ -78,7 +78,7 @@ def create_lvm_setup() -> None:
         print(f"Error creating Volume Group: {e.stderr}", file=sys.stderr)
         return
 
-    # --- Steg 3: lvcreate (loop) ---
+    # --- Step 3: lvcreate (loop) ---
     print("\n--- Step 3: Create Logical Volumes (LVs) ---")
     while True:
         if not input("Create a new Logical Volume? (yes/no): ").lower().startswith('y'):
@@ -105,7 +105,7 @@ def create_lvm_setup() -> None:
         except subprocess.CalledProcessError as e:
             print(f"  Error creating Logical Volume: {e.stderr}", file=sys.stderr)
 
-    # --- Spara till skript ---
+    # --- Save to script ---
     if all_commands:
         print(f"\nSaving LVM commands to '{script_path}'...")
         try:
@@ -120,7 +120,7 @@ def create_lvm_setup() -> None:
             print(f"Error writing to script file: {e}", file=sys.stderr)
 
 def run_lvm_menu() -> None:
-    """Hanterar menyn för LVM-operationer."""
+    """Handles the menu for LVM operations."""
     lvm_options = {
         "1": "Create volumes and group",
         "2": "Return to main menu"

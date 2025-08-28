@@ -1,19 +1,19 @@
 def get_confirmed_choice(title: str, options: dict) -> str | None:
     """
-    Visar en meny, ber användaren göra ett val och bekräfta det.
-    Returnerar det bekräftade valet.
+    Shows a menu, asks the user to make a choice and confirm it.
+    Returns the confirmed choice.
     """
-    while True: # En evighetsloop som vi bryter oss ur med 'return'
+    while True: # An infinite loop that we break out of with 'return'
         print(title)
         for key, value in options.items():
-            # Justerar texten så att [key] hamnar på samma plats
+            # Adjusts the text so that [key] is aligned
             print(f"{value:<29}[{key}]")
         print("***********************")
         print("Please type your choice:")
 
         choice = input()
 
-        # Se till att valet är giltigt innan vi fortsätter
+        # Make sure the choice is valid before continuing
         if choice not in options:
             print(f'"{choice}" is not a valid option. Please try again.\n')
             continue
@@ -24,13 +24,13 @@ def get_confirmed_choice(title: str, options: dict) -> str | None:
         user_input = input()
 
         if user_input.lower().startswith('y'):
-            return choice # Bryter loopen och returnerar det bekräftade valet
+            return choice # Breaks the loop and returns the confirmed choice
         else:
             print("OK, let's try again.\n")
 
 def display_disk_info(data: dict) -> None:
     """
-    Tar emot disk-information och skriver ut den i ett hierarkiskt format.
+    Receives disk information and prints it in a hierarchical format.
     """
     print("--- Tillgängliga diskar och partitioner ---")
     if not data or 'blockdevices' not in data:
@@ -51,7 +51,7 @@ def display_disk_info(data: dict) -> None:
     print("\n-------------------------------------------")
 
 def display_disk_devs(data: dict) -> None:
-    """Visar enbart en lista över diskenheter."""
+    """Show a list of disk devices"""
     print("****-List of Disk Devices-****")
     if not data or 'blockdevices' not in data:
         print("****-No disk devices found-****")
