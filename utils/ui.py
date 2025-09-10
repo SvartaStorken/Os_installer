@@ -1,3 +1,4 @@
+import curses
 def get_confirmed_choice(title: str, options: dict) -> str | None:
     """
     Shows a menu, asks the user to make a choice and confirm it.
@@ -61,3 +62,48 @@ def display_disk_devs(data: dict) -> None:
         if device.get('type') == 'disk':
             print(f"/dev/{device.get('name', 'N/A')} (Size: {device.get('size', 'N/A')})")
     print("\n-------------------------------------------")
+
+def get_menu_choice(stdscr: 'curses._CursesWindow', title: str, options: dict) -> str | None:
+    """
+    Displays a curses-based menu and returns the selected option's value.
+    Allows navigation with arrow keys and selection with Enter.
+    """
+    # --- Curses setup ---
+    curses.curs_set(0)  # Hide the cursor
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)  # Highlighted item
+    
+    # --- Menu state ---
+    current_row_idx = 0
+    # We will display the values from the dictionary
+    option_values = list(options.values())
+
+    while True:
+        stdscr.clear()
+        h, w = stdscr.getmaxyx()
+
+        # --- Render title ---
+        stdscr.addstr(1, 2, title)
+        stdscr.addstr(2, 2, "=" * (len(title)))
+
+        # --- Render menu options ---
+        for idx, row in enumerate(option_values):
+            x = 2
+            y = 4 + idx
+            if idx == current_row_idx:
+                stdscr.attron(curses.color_pair(1))
+                stdscr.addstr(y, x, f"> {row}")
+                stdscr.attroff(curses.color_pair(1))
+            else:
+                stdscr.addstr(y, x, f"  {row}")
+
+        stdscr.refresh()
+
+        # --- Handle input ---
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP and current_row_idx > 0:
+            current_row_idx -= 1
+        elif key == curses.KEY_DOWN and current_row_idx < len(option_values) - 1:
+            current_row_idx += 1
+        elif key == curses.KEY_ENTER or key in [10, 13]:
+            return option_values[current_row_idx]

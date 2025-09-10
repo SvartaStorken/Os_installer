@@ -1,11 +1,23 @@
+import curses
+import os
 from utils import ui
 from modules import disk_analysis, partitioning, encryption, lvm
 
 # Define the path to our template directory for easy access
 TEMPLATE_DIR = "Templates/default_template"
 
-def main():
-    """Main function to run the application."""
+def run_module_and_return(module_func):
+    """Temporarily ends curses, runs a standard I/O function, and waits for user."""
+    curses.endwin() # Stäng av curses
+    os.system('clear') # Rensa terminalen
+    module_func() # Kör modulen som använder print/input
+    print("\n-------------------------------------------")
+    input("Press Enter to return to the main menu...")
+    os.system('clear') # Rensa terminalen igen innan vi återgår till curses
+
+def main_loop(stdscr: 'curses._CursesWindow'):
+    """Main application loop running within a curses screen."""
+    # This dictionary should be defined inside the loop's scope.
     main_menu_options = {
         "1": "Disk Analysis",
         "2": "Partitioning",
@@ -16,23 +28,34 @@ def main():
     }
 
     while True:
-        choice = ui.get_confirmed_choice("What do you like to do?", main_menu_options)
+        # Assuming get_menu_choice returns the *value* (e.g., "Disk Analysis")
+        # and that it's the intended curses-based menu function.
+        choice = ui.get_menu_choice(stdscr, "What do you like to do?", main_menu_options)
 
-        if choice == "1":
-            disk_analysis.run_disk_analysis()
-        elif choice == "2":
-            partitioning.run_partitioning()
-        elif choice == "3":
-            encryption.run_encryption_menu()
-        elif choice == "4":
-            lvm.run_lvm_menu()
-        elif choice == "5":
-            print("Feature yet to be implemented")
-        elif choice == "6":
-            print("Exiting. Goodbye!")
+        if choice == "Disk Analysis":
+            run_module_and_return(disk_analysis.run_disk_analysis)
+        elif choice == "Partitioning":
+            run_module_and_return(partitioning.run_partitioning)
+        elif choice == "Disk Encryption":
+            run_module_and_return(encryption.run_encryption_menu)
+        elif choice == "Logical Volumes (LVM)":
+            run_module_and_return(lvm.run_lvm_menu)
+        elif choice == "Write Filesystem":
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Feature yet to be implemented. Press any key to continue.")
+            stdscr.getch()
+        elif choice == "Exit" or choice is None:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Exiting. Goodbye!")
+            stdscr.refresh()
+            curses.napms(1000)
             break
-
-        input("\nPress Enter to return to the main menu...")
+        
+        # Efter att en modul har körts, rita om skärmen för nästa meny-loop
+        stdscr.clear()
+        stdscr.refresh()
 
 if __name__ == "__main__":
-    main()
+    # The curses.wrapper function initializes curses, and restores the
+    # terminal to its original state after the program has finished.
+    curses.wrapper(main_loop)
