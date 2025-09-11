@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-from utils.disk_ops import get_free_space_info, select_disk_device, inspect_device
+from utils.disk_ops import get_free_space_info, select_disk_device_curses, inspect_device
 
 TEMPLATE_DIR = "Templates/default_template"
 
@@ -66,7 +66,7 @@ def create_partition_fullscreen(device_path: str) -> None:
 
 def run_partitioning() -> None:
     """Manages the workflow for partitioning a disk."""
-    device_path = select_disk_device("Select a disk to partition:")
+    device_path = select_disk_device_curses("Select a disk to partition:")
     if not device_path:
         print("Partitioning cancelled.")
         return

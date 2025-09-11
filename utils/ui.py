@@ -63,6 +63,51 @@ def display_disk_devs(data: dict) -> None:
             print(f"/dev/{device.get('name', 'N/A')} (Size: {device.get('size', 'N/A')})")
     print("\n-------------------------------------------")
 
+def display_text_viewer(stdscr: 'curses._CursesWindow', title: str, text_lines: list[str]):
+    """Displays a scrollable text viewer within a curses window."""
+    curses.curs_set(0)
+    h, w = stdscr.getmaxyx()
+    top_line = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(1, 2, f"{title} (Scroll with arrows, 'q' to quit)")
+        stdscr.addstr(2, 2, "=" * (w - 4))
+
+        # Display text
+        for i, line in enumerate(text_lines[top_line:top_line + h - 5]):
+            stdscr.addstr(4 + i, 2, line[:w-3])
+
+        stdscr.refresh()
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP and top_line > 0:
+            top_line -= 1
+        elif key == curses.KEY_DOWN and top_line < len(text_lines) - (h - 5):
+            top_line += 1
+        elif key == ord('q'):
+            break
+
+def get_confirmation(stdscr: 'curses._CursesWindow', prompt: str) -> bool:
+    """Displays a confirmation prompt (y/n) and returns True for 'y'."""
+    h, w = stdscr.getmaxyx()
+    # Position the prompt at the bottom of the screen
+    prompt_y = h - 2
+    stdscr.addstr(prompt_y, 2, f"{prompt} (y/n)")
+    stdscr.refresh()
+    
+    # Get user input, echo it to the screen
+    curses.echo()
+    curses.curs_set(1)
+    input_char = stdscr.getch(prompt_y, 2 + len(prompt) + 7)
+    curses.noecho()
+    curses.curs_set(0)
+
+    # Clear the prompt line
+    stdscr.move(prompt_y, 0)
+    stdscr.clrtoeol()
+    return chr(input_char).lower() == 'y'
+
 def get_menu_choice(stdscr: 'curses._CursesWindow', title: str, options: dict) -> str | None:
     """
     Displays a curses-based menu and returns the selected option's value.

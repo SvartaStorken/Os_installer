@@ -1,6 +1,7 @@
 import subprocess
 import json
 import sys
+from . import ui # Import the ui module to use its functions
 
 def get_disk_info() -> dict | None:
     """
@@ -22,9 +23,9 @@ def get_disk_info() -> dict | None:
         print(f"Error getting disk info: {e}", file=sys.stderr)
         return None
 
-def select_disk_device(prompt: str="Please select a device:") -> str | None:
+def select_disk_device_curses(stdscr, prompt: str="Please select a device:") -> str | None:
     """
-    Displays a menu with disks and lets the user select one.
+    Displays a curses-based menu with disks and lets the user select one.
     Returns the selected device path (e.g. /dev/sda).
     """
     disk_data = get_disk_info()
@@ -33,27 +34,22 @@ def select_disk_device(prompt: str="Please select a device:") -> str | None:
 
     available_disks = [dev for dev in disk_data['blockdevices'] if dev.get('type') == 'disk']
     if not available_disks:
-        print("No disks found.")
+        stdscr.addstr(4, 2, "No disks found. Press any key to continue.")
+        stdscr.getch()
         return None
 
     disk_menu_options = {
-        str(i + 1): f"/dev/{disk['name']} ({disk['size']})" for i, disk in enumerate(available_disks)
+        f"/dev/{disk['name']}": f"/dev/{disk['name']} ({disk['size']})" for disk in available_disks
     }
-    cancel_option = str(len(disk_menu_options) + 1)
-    disk_menu_options[cancel_option] = "Cancel"
+    disk_menu_options["Cancel"] = "Cancel"
 
-    while True:
-        print(f"\n{prompt}")
-        for key, value in disk_menu_options.items():
-            print(f"[{key}] {value}")
+    # We need to pass the values to the menu, but return the key
+    menu_values = {v: k for k, v in disk_menu_options.items()}
+    selected_value = ui.get_menu_choice(stdscr, prompt, {i: v for i, v in enumerate(disk_menu_options.values())})
 
-        choice = input("Your choice: ")
-        if choice == cancel_option:
-            return None
-        elif choice in disk_menu_options:
-            return disk_menu_options[choice].split()[0]
-        else:
-            print(f'"{choice}" is not a valid option. Please try again.')
+    if selected_value and selected_value != "Cancel":
+        return menu_values[selected_value]
+    return None
 
 def select_partition_device(prompt: str="Please select a partition:") -> str | None:
     """
@@ -97,15 +93,22 @@ def inspect_device(device_path: str) -> bool:
     """
     Runs 'sudo parted ... print free' to show detailed partition information.
     """
-    print(f"\n--- Detailed information for {device_path} ---")
     command = ["sudo", "parted", device_path, "print", "free"]
     try:
-        subprocess.run(command, check=True)
+        # We need to end curses temporarily to run the command and see its output
+        import curses
+        curses.endwin()
+        print(f"\n--- Detailed information for {device_path} ---")
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        print(result.stdout)
         print("-------------------------------------------------")
-        return True
+        input("Press Enter to return...")
+        # The calling function will need to re-initialize the screen
+        return True, result.stdout.splitlines()
     except (FileNotFoundError, subprocess.CalledProcessError) as e:
         print(f"Error inspecting device: {e}", file=sys.stderr)
-        return False
+        input("Press Enter to return...")
+        return False, []
 
 def get_free_space_info(device_path: str) -> str | None:
     """

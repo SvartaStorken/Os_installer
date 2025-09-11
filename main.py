@@ -6,14 +6,6 @@ from modules import disk_analysis, partitioning, encryption, lvm
 # Define the path to our template directory for easy access
 TEMPLATE_DIR = "Templates/default_template"
 
-def run_module_and_return(module_func):
-    """Temporarily ends curses, runs a standard I/O function, and waits for user."""
-    curses.endwin() # Stäng av curses
-    os.system('clear') # Rensa terminalen
-    module_func() # Kör modulen som använder print/input
-    print("\n-------------------------------------------")
-    input("Press Enter to return to the main menu...")
-    os.system('clear') # Rensa terminalen igen innan vi återgår till curses
 
 def main_loop(stdscr: 'curses._CursesWindow'):
     """Main application loop running within a curses screen."""
@@ -33,13 +25,13 @@ def main_loop(stdscr: 'curses._CursesWindow'):
         choice = ui.get_menu_choice(stdscr, "What do you like to do?", main_menu_options)
 
         if choice == "Disk Analysis":
-            run_module_and_return(disk_analysis.run_disk_analysis)
+            disk_analysis.run_disk_analysis(stdscr)
         elif choice == "Partitioning":
-            run_module_and_return(partitioning.run_partitioning)
+            ui.display_text_viewer(stdscr, "Info", ["This module is not yet converted to curses."])
         elif choice == "Disk Encryption":
-            run_module_and_return(encryption.run_encryption_menu)
+            ui.display_text_viewer(stdscr, "Info", ["This module is not yet converted to curses."])
         elif choice == "Logical Volumes (LVM)":
-            run_module_and_return(lvm.run_lvm_menu)
+            ui.display_text_viewer(stdscr, "Info", ["This module is not yet converted to curses."])
         elif choice == "Write Filesystem":
             stdscr.clear()
             stdscr.addstr(0, 0, "Feature yet to be implemented. Press any key to continue.")
